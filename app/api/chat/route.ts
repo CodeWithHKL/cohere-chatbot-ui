@@ -1,28 +1,61 @@
 import { CohereClientV2 } from 'cohere-ai';
 import { NextResponse } from 'next/server';
 
-const cohere = new CohereClientV2({
-  token: process.env.COHERE_API_KEY,
-});
+export const maxDuration = 30;
+
+const MAX_HISTORY = 10;
 
 export async function POST(req: Request) {
+  // Set MAINTENANCE_MODE=true in Vercel env vars (then redeploy) to disable the API.
+  if (process.env.MAINTENANCE_MODE === 'true') {
+    return NextResponse.json(
+      { reply: "SYSTEM_OFFLINE: CORE UNDER MAINTENANCE." },
+      { status: 503 }
+    );
+  }
+
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) {
+    console.error('COHERE_API_KEY is not set');
+    return NextResponse.json(
+      { reply: "ERROR: SERVER MISCONFIGURED." },
+      { status: 500 }
+    );
+  }
+
   try {
-    const { message } = await req.json();
-    
-    if (!message || message.length > 400) {
+    const body = await req.json().catch(() => null);
+    const message = body?.message;
+
+    if (typeof message !== 'string' || !message.trim() || message.length > 400) {
       return NextResponse.json(
-        { reply: "SYSTEM_ERROR: INPUT_OVERLOAD. PLEASE LIMIT QUERY TO 400 CHARACTERS." }, 
+        { reply: "SYSTEM_ERROR: INPUT_OVERLOAD. PLEASE LIMIT QUERY TO 400 CHARACTERS." },
         { status: 400 }
       );
     }
-    
+
+    // Sanitize client-supplied history: only user/assistant turns, capped in count and length
+    const rawHistory: unknown = body?.history;
+    const history = (Array.isArray(rawHistory) ? rawHistory : [])
+      .filter(
+        (m): m is { role: 'user' | 'assistant'; content: string } =>
+          !!m &&
+          (m.role === 'user' || m.role === 'assistant') &&
+          typeof m.content === 'string'
+      )
+      .slice(-MAX_HISTORY)
+      .map(m => ({ role: m.role, content: m.content.slice(0, 1000) }));
+
+    const cohere = new CohereClientV2({ token: apiKey });
+
     const response = await cohere.chat({
-      model: 'command-r7b-12-2024', 
+      model: 'command-r7b-12-2024',
       messages: [
         {
           role: 'system',
           content: "You are a chatbot for Universiti Tenaga Nasional (UNITEN), Malaysia; answer only UNITEN-related questions, and if unsure or out of scope, say you don’t know and do not fabricate information. UNITEN is a private universiti owned by TNB Tenaga Nasional Berhad. Answer with 100 words maximum, answer with less if possible."
         },
+        ...history,
         { role: 'user', content: message },
       ],
       temperature: 0.7,
