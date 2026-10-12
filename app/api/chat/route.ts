@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   // Set MAINTENANCE_MODE=true in Vercel env vars (then redeploy) to disable the API.
   if (process.env.MAINTENANCE_MODE === 'true') {
     return NextResponse.json(
-      { reply: "SYSTEM_OFFLINE: CORE UNDER MAINTENANCE." },
+      { reply: "The chatbot is under maintenance. Please check back soon." },
       { status: 503 }
     );
   }
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (!apiKey) {
     console.error('COHERE_API_KEY is not set');
     return NextResponse.json(
-      { reply: "ERROR: SERVER MISCONFIGURED." },
+      { reply: "The chatbot is not configured correctly. Please try again later." },
       { status: 500 }
     );
   }
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     if (typeof message !== 'string' || !message.trim() || message.length > 400) {
       return NextResponse.json(
-        { reply: "SYSTEM_ERROR: INPUT_OVERLOAD. PLEASE LIMIT QUERY TO 400 CHARACTERS." },
+        { reply: "Please enter a message of up to 400 characters." },
         { status: 400 }
       );
     }
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
     // Safer extraction: Find the first content block that is a text type
     const content = response.message.content;
-    let botReply = "ERROR: EMPTY RESPONSE FROM AI.";
+    let botReply = "I couldn't generate a reply. Please try again.";
 
     if (Array.isArray(content) && content.length > 0) {
       const textBlock = content.find(block => block.type === 'text');
@@ -76,6 +76,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ reply: botReply });
   } catch (error) {
     console.error('Cohere API Error:', error);
-    return NextResponse.json({ reply: "ERROR: NEURAL LINK INTERRUPTED." }, { status: 500 });
+    return NextResponse.json({ reply: "Something went wrong while contacting the AI. Please try again." }, { status: 500 });
   }
 }

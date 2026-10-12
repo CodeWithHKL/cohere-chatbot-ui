@@ -1,232 +1,228 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Zap, Terminal, Command, Menu, Loader2, ShieldCheck } from 'lucide-react';
-import ChatSidebar from '../components/ChatSidebar';
+import { useState, useEffect, useRef } from "react";
+import { ArrowUp, PanelLeftOpen, GraduationCap, MapPin, FileText, Building2, Zap } from "lucide-react";
+import ChatSidebar from "../components/ChatSidebar";
+import BrandMark from "../components/BrandMark";
 
 interface Message {
-  role: 'bot' | 'user' | 'system';
+  role: "bot" | "user";
   content: string;
-  time: string;
+  isError?: boolean;
 }
 
-export default function CyberChat() {
-  const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const CHARACTER_LIMIT = 400;
-  const HISTORY_LIMIT = 10; // max previous messages sent to the bot
+const CHARACTER_LIMIT = 400;
+const HISTORY_LIMIT = 10; // max previous messages sent to the bot
 
+const SUGGESTIONS = [
+  { icon: GraduationCap, title: "Programmes", text: "What programmes does UNITEN offer?" },
+  { icon: MapPin, title: "Campus", text: "Where is the UNITEN campus?" },
+  { icon: FileText, title: "Admission", text: "How do I apply for admission?" },
+  { icon: Building2, title: "About", text: "Who owns UNITEN?" },
+];
+
+export default function CyberChat() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sidebar starts open on desktop only (on mobile it is an overlay)
   useEffect(() => {
-    setMounted(true);
-    setMessages([
-      {
-        role: 'system',
-        content: 'This chatbot is powered by Cohere AI. I don’t store or collect any of your data—everything is handled securely by Cohere, a trusted third party. Responses are AI-generated and may not always be accurate',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      },
-      { 
-        role: 'bot', 
-        content: 'UNITEN Chatbot is online! What can I help?', 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }
-    ]);
+    setSidebarOpen(window.matchMedia("(min-width: 768px)").matches);
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const send = async (text: string) => {
+    const content = text.trim();
+    if (!content || isLoading) return;
 
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const currentInput = input;
-
-    // Send the last few user/bot turns (excluding system notices) so the bot remembers the chat
+    // Last few real turns (no error notices) so the bot remembers the chat
     const history = messages
-      .filter(m => m.role === 'user' || m.role === 'bot')
+      .filter((m) => !m.isError)
       .slice(-HISTORY_LIMIT)
-      .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }));
+      .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content }));
 
-    const newUserMsg: Message = { role: 'user', content: currentInput, time: now };
-    setMessages(prev => [...prev, newUserMsg]);
-    setInput('');
+    setMessages((prev) => [...prev, { role: "user", content }]);
+    setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: currentInput, history }),
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: content, history }),
       });
-
-      const data = await response.json();
-
-      setMessages(prev => [...prev, { 
-        role: 'bot', 
-        content: data.reply, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { 
-        role: 'bot', 
-        content: "CRITICAL_ERROR: CONNECTION_LOST. UNABLE TO REACH HKLX SERVERS.", 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
+      const data = await response.json().catch(() => null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "bot",
+          content: data?.reply ?? "Something went wrong. Please try again.",
+          isError: !response.ok,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", content: "Couldn't reach the server. Check your connection and try again.", isError: true },
+      ]);
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  const clearChat = () => {
-    setMessages([
-      {
-        role: 'system',
-        content: 'KERNEL REBOOT INITIATED. MEMORY PURGED.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      },
-      { 
-        role: 'bot', 
-        content: 'SESSION RESET. KERNEL REBOOTED. STANDING BY.', 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }
-    ]);
+  const newChat = () => {
+    setMessages([]);
+    setInput("");
+    if (!window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(false);
+    inputRef.current?.focus();
   };
 
-  if (!mounted) return <div className="bg-[#050505] h-screen w-screen" />;
-
   return (
-    <div className="flex h-screen bg-[#050505] text-white font-mono selection:bg-[#ff0000] selection:text-black overflow-hidden">
-      <ChatSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} onNewSession={clearChat} />
+    <div className="flex h-dvh bg-canvas text-ink">
+      <ChatSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} onNewSession={newChat} />
 
-      <main className="flex-1 flex flex-col relative min-w-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#ff0000]/5 blur-[140px] rounded-full pointer-events-none" />
+      <main className="flex-1 flex flex-col min-w-0 relative">
+        <div className="doodle absolute inset-0 pointer-events-none" aria-hidden />
 
-        <header className="h-20 border-b border-white/10 flex items-center px-4 md:px-6 justify-between bg-black/40 backdrop-blur-xl z-20 shrink-0">
-          <div className="flex items-center gap-4">
-            {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="p-2.5 hover:bg-white/5 border border-white/10 rounded-lg text-[#ff0000] transition-all">
-                <Menu size={20} />
-              </button>
-            )}
-            <div className="p-2 bg-white/5 border border-white/10 rounded-lg hidden sm:block">
-                <Terminal size={18} className="text-[#ff0000]" />
-            </div>
-            <div>
-                <h2 className="text-xs md:text-sm font-black uppercase tracking-[0.2em]">UNITEN CHATBOT V6.7</h2>
-                <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-red-500' : 'bg-green-500'} animate-pulse`} />
-                  <p className="text-[8px] md:text-[9px] text-gray-500 font-bold tracking-widest uppercase">
-                    {isLoading ? 'Scanning Database...' : 'Connection Initialized'}
-                  </p>
-                </div>
-            </div>
+        <header className="relative h-16 px-4 md:px-6 flex items-center gap-3 shrink-0 text-white bg-gradient-to-r from-[#c4141b] to-[#8f0f15] shadow-md shadow-red-950/20">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+              className="p-2 -ml-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <PanelLeftOpen size={18} />
+            </button>
+          )}
+          <Zap size={18} fill="currentColor" className="text-yellow-300 shrink-0" />
+          <div className="leading-tight min-w-0">
+            <h1 className="text-sm font-semibold tracking-tight truncate">UNITEN Chatbot</h1>
+            <p className="text-[11px] text-white/75 truncate">Universiti Tenaga Nasional</p>
           </div>
-          <div className="flex items-center gap-4 text-[#ff0000]">
-            <span className="hidden md:block text-[9px] font-black tracking-widest opacity-40">HKL-VERCEL-PROTOCOL</span>
-            <Zap size={18} className="animate-pulse" />
-          </div>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/85">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+            Online
+          </span>
         </header>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-8 z-10 scrollbar-hide">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {messages.map((msg, i) => (
-              msg.role === 'system' ? (
-                <div key={i} className="flex flex-col items-center justify-center py-4 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/10" />
-                    <div className="flex items-center justify-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full text-center">
-                      <ShieldCheck size={10} className="text-[#ff0000] shrink-0" />
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.3em]">
-                        {msg.content}
-                      </span>
-                    </div>
-                    <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/10" />
-                  </div>
-                  <span className="text-[7px] text-gray-700 font-bold uppercase tracking-widest">Logged: {msg.time}</span>
+        <div ref={scrollRef} className="relative flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
+            {messages.length === 0 ? (
+              <div className="min-h-[55vh] flex flex-col items-center justify-center text-center animate-rise">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-accent/30 blur-2xl rounded-full" aria-hidden />
+                  <BrandMark size={64} className="relative" />
                 </div>
-              ) : (
-                <div key={i} className={`flex gap-3 md:gap-5 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-300 ${
-                    msg.role === 'user' ? 'bg-[#ff0000] border-[#ff0000] text-black shadow-[0_0_15px_rgba(255,0,0,0.3)]' : 'bg-white/5 border-white/10 text-[#ff0000]'
-                  }`}>
-                    {msg.role === 'user' ? <User size={16} strokeWidth={3} /> : <Bot size={16} strokeWidth={3} />}
-                  </div>
-                  
-                  <div className={`max-w-[85%] md:max-w-xl space-y-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block px-4 py-3 md:px-6 md:py-4 rounded-2xl text-[13px] md:text-sm font-bold tracking-tight leading-relaxed shadow-2xl ${
-                      msg.role === 'user' ? 'bg-zinc-100 text-black rounded-tr-none' : 'bg-[#0f0f0f] border border-white/10 text-gray-300 rounded-tl-none border-l-2 border-l-[#ff0000]'
-                    }`}>
-                      {msg.content}
+                <h2 className="text-3xl font-bold tracking-tight mb-2">
+                  Hi, I&apos;m the <span className="text-accent">UNITEN</span> assistant
+                </h2>
+                <p className="text-sm text-muted mb-10 max-w-md">
+                  Ask me about programmes, admission, campus life and more. If I don&apos;t know the
+                  answer, I&apos;ll say so.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-3 w-full max-w-xl text-left">
+                  {SUGGESTIONS.map(({ icon: Icon, title, text }) => (
+                    <button
+                      key={text}
+                      onClick={() => send(text)}
+                      className="group flex items-start gap-3 p-4 rounded-2xl border border-line bg-panel/90 backdrop-blur-sm hover:border-accent hover:-translate-y-0.5 hover:shadow-lg hover:shadow-red-900/10 transition"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-accent/10 text-accent grid place-items-center shrink-0 group-hover:bg-accent group-hover:text-accent-ink transition-colors">
+                        <Icon size={18} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold">{title}</span>
+                        <span className="block text-sm text-muted">{text}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {messages.map((msg, i) =>
+                  msg.role === "user" ? (
+                    <div key={i} className="flex justify-end animate-rise">
+                      <div className="max-w-[85%] md:max-w-[75%] px-4 py-2.5 rounded-2xl rounded-br-md bg-gradient-to-br from-[#d71920] to-[#a30f15] text-bubble-ink text-[15px] leading-relaxed whitespace-pre-wrap break-words shadow-md shadow-red-900/20">
+                        {msg.content}
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">
-                         <span className="opacity-40">{msg.time}</span> // {msg.role === 'user' ? 'Admin' : 'UNITEN CHATBOT'}
+                  ) : (
+                    <div key={i} className="flex gap-3 animate-rise">
+                      <BrandMark size={32} className="mt-0.5" />
+                      <p
+                        className={`max-w-[85%] md:max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tl-md border bg-panel text-[15px] leading-relaxed whitespace-pre-wrap break-words min-w-0 ${
+                          msg.isError ? "border-accent/50 text-accent" : "border-line"
+                        }`}
+                      >
+                        {msg.content}
                       </p>
                     </div>
-                  </div>
-                </div>
-              )
-            ))}
+                  )
+                )}
 
-            {isLoading && (
-              <div className="flex gap-3 md:gap-5 flex-row">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 text-[#ff0000]">
-                  <Loader2 size={16} className="animate-spin" />
-                </div>
-                <div className="bg-[#0f0f0f] border border-white/10 px-4 py-3 rounded-2xl rounded-tl-none border-l-2 border-l-[#ff0000]">
-                  <span className="text-[10px] text-gray-500 animate-pulse uppercase tracking-widest font-black">Querying Intelligence...</span>
-                </div>
+                {isLoading && (
+                  <div className="flex gap-3" aria-label="Bot is typing">
+                    <BrandMark size={32} />
+                    <div className="flex items-center gap-1 px-4 h-10 rounded-2xl rounded-tl-md border border-line bg-panel">
+                      {[0, 1, 2].map((d) => (
+                        <span
+                          key={d}
+                          className="w-1.5 h-1.5 rounded-full bg-accent"
+                          style={{ animation: "typing 1.2s infinite", animationDelay: `${d * 0.15}s` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* This container has been adjusted with more bottom padding (pb-12 md:pb-20) to move the box up */}
-        <div className="px-4 pt-4 pb-20 md:px-8 md:pt-8 md:pb-24 bg-gradient-to-t from-[#050505] to-transparent z-10">
-          <div className="max-w-4xl mx-auto">
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-[#ff0000]/20 rounded-[1rem] md:rounded-[2rem] blur-lg opacity-0 group-focus-within:opacity-100 transition duration-700"></div>
-              <div className="relative flex items-center bg-[#0a0a0a] border border-white/10 rounded-[1rem] md:rounded-[1.5rem] overflow-hidden backdrop-blur-md">
-                <div className="pl-4 md:pl-6 text-gray-500 shrink-0"><Command size={18} /></div>
-                
-                <input
-                  type="text"
-                  disabled={isLoading}
-                  value={input}
-                  maxLength={CHARACTER_LIMIT}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={isLoading ? "PROCESSING..." : "ASK ABOUT UNITEN..."}
-                  className="w-full bg-transparent border-none py-4 md:py-6 px-3 md:px-5 text-[11px] md:text-xs font-black focus:outline-none tracking-[0.2em] focus:outline-none placeholder:text-gray-800 disabled:opacity-50"
-                />
-
-                <div className="hidden sm:flex flex-col items-end mr-4 select-none">
-                  <span className={`text-[9px] font-black tracking-tighter ${
-                    input.length >= CHARACTER_LIMIT ? 'text-red-500' : 'text-gray-600'
-                  }`}>
-                    {input.length}/{CHARACTER_LIMIT}
-                  </span>
-                  <span className="text-[7px] text-gray-800 font-bold uppercase tracking-widest">Buffer</span>
-                </div>
-                
-                <button 
-                  onClick={handleSend}
-                  disabled={isLoading}
-                  className="mr-2 md:mr-4 p-2.5 md:p-4 bg-[#ff0000] text-black rounded-lg md:rounded-xl hover:bg-red-400 active:scale-90 flex items-center gap-2 px-5 md:px-8 shadow-[0_0_20px_rgba(255,0,0,0.2)] disabled:opacity-50"
-                >
-                  <span className="text-[10px] font-black uppercase tracking-tighter hidden sm:inline">Send</span>
-                  {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} strokeWidth={3} />}
-                </button>
-              </div>
-            </div>
-          </div>
+        <div className="relative px-4 md:px-6 pb-4 md:pb-6 pt-2 shrink-0">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="max-w-3xl mx-auto flex items-center gap-2 pl-5 pr-2 py-2 rounded-full border border-line bg-panel shadow-lg shadow-red-900/5 focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15 transition"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              maxLength={CHARACTER_LIMIT}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about UNITEN…"
+              aria-label="Message"
+              className="flex-1 min-w-0 bg-transparent py-2 text-[15px] outline-none placeholder:text-muted"
+            />
+            {input.length >= CHARACTER_LIMIT - 50 && (
+              <span className="text-xs tabular-nums text-muted">
+                {input.length}/{CHARACTER_LIMIT}
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              aria-label="Send message"
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d71920] to-[#a30f15] text-accent-ink grid place-items-center shrink-0 hover:brightness-110 active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ArrowUp size={18} strokeWidth={2.5} />
+            </button>
+          </form>
+          <p className="max-w-3xl mx-auto mt-2 text-center text-[11px] text-muted">
+            AI-generated answers may be inaccurate. Verify important details with UNITEN.
+          </p>
         </div>
       </main>
     </div>
