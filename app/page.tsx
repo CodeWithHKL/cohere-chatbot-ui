@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ArrowUp, PanelLeftOpen, GraduationCap, MapPin, FileText, Building2, Zap } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import ChatSidebar from "../components/ChatSidebar";
 import BrandMark from "../components/BrandMark";
 
@@ -158,13 +159,13 @@ export default function CyberChat() {
                   ) : (
                     <div key={i} className="flex gap-3 animate-rise">
                       <BrandMark size={32} className="mt-0.5" />
-                      <p
-                        className={`max-w-[85%] md:max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tl-md border bg-panel text-[15px] leading-relaxed whitespace-pre-wrap break-words min-w-0 ${
+                      <div
+                        className={`md max-w-[85%] md:max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tl-md border bg-panel text-[15px] leading-relaxed break-words min-w-0 ${
                           msg.isError ? "border-accent/50 text-accent" : "border-line"
                         }`}
                       >
-                        {msg.content}
-                      </p>
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                     </div>
                   )
                 )}

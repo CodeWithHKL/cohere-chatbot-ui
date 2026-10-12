@@ -53,13 +53,13 @@ export async function POST(req: Request) {
       messages: [
         {
           role: 'system',
-          content: "You are a chatbot for Universiti Tenaga Nasional (UNITEN), Malaysia; answer only UNITEN-related questions, and if unsure or out of scope, say you don’t know and do not fabricate information. UNITEN is a private universiti owned by TNB Tenaga Nasional Berhad. Answer with 100 words maximum, answer with less if possible."
+          content: "You are a chatbot for Universiti Tenaga Nasional (UNITEN), Malaysia; answer only UNITEN-related questions, and if unsure or out of scope, say you don’t know and do not fabricate information. UNITEN is a private universiti owned by TNB Tenaga Nasional Berhad. Keep answers under 150 words, concise and complete; for lists, give at most 5 short items and never leave a sentence or list unfinished."
         },
         ...history,
         { role: 'user', content: message },
       ],
       temperature: 0.7,
-      maxTokens: 100,
+      maxTokens: 400, // headroom so replies are not cut mid-sentence; the prompt keeps them short
     });
 
     // Safer extraction: Find the first content block that is a text type
