@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowUp, PanelLeftOpen, GraduationCap, MapPin, FileText, Building2, Zap } from "lucide-react";
+import { ArrowUp, PanelLeftOpen, GraduationCap, MapPin, FileText, Building2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import ChatSidebar from "../components/ChatSidebar";
 import BrandMark from "../components/BrandMark";
@@ -103,7 +103,7 @@ export default function CyberChat() {
               <PanelLeftOpen size={18} />
             </button>
           )}
-          <Zap size={18} fill="currentColor" className="text-yellow-300 shrink-0" />
+          <BrandMark size={36} />
           <div className="leading-tight min-w-0">
             <h1 className="text-sm font-semibold tracking-tight truncate">UNITEN Chatbot</h1>
             <p className="text-[11px] text-white/75 truncate">Universiti Tenaga Nasional</p>

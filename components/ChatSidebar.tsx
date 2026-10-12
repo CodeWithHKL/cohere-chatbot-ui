@@ -32,7 +32,7 @@ export default function ChatSidebar({ isOpen, setIsOpen, onNewSession }: Sidebar
         <div className="relative w-72 md:w-64 flex flex-col h-full">
           <div className="h-16 px-4 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <BrandMark size={32} className="!bg-white !from-white !to-white !text-[#b8141b] !shadow-none" />
+              <BrandMark size={36} />
               <div className="leading-tight">
                 <p className="text-sm font-semibold tracking-tight">UNITEN</p>
                 <p className="text-[11px] text-white/70">AI Assistant</p>
@@ -68,7 +68,7 @@ export default function ChatSidebar({ isOpen, setIsOpen, onNewSession }: Sidebar
               </span>
             </p>
             <a
-              href="https://hklxportfolio.vercel.app"
+              href="https://github.com/CodeWithHKL/cohere-chatbot-ui"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 font-medium text-white hover:underline"

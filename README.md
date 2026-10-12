@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UNITEN Chatbot
 
-## Getting Started
+A concept AI chatbot for **Universiti Tenaga Nasional (UNITEN)**, Malaysia. Ask about the university and get short, markdown-formatted answers. Built with Next.js and Cohere, deployed on Vercel.
 
-First, run the development server:
+> Unofficial concept project. Not affiliated with or endorsed by UNITEN. Answers are AI-generated and may be inaccurate.
+
+## Features
+
+- Chat with conversation memory (the last 10 messages are sent with each request)
+- Markdown rendering for replies (bold, lists, links)
+- UNITEN red theme with a lightning doodle background, light and dark mode following the system setting
+- Responsive layout with a collapsible sidebar
+- Input validation (400 character limit) and a maintenance switch for the API
+
+## Tech stack
+
+- [Next.js](https://nextjs.org) 16 (App Router) and React 19 with the React Compiler
+- [Tailwind CSS](https://tailwindcss.com) 4
+- [Cohere](https://cohere.com) `command-r7b-12-2024` via the `cohere-ai` SDK
+- [react-markdown](https://github.com/remarkjs/react-markdown), [lucide-react](https://lucide.dev)
+
+## Getting started
+
+```bash
+npm install
+```
+
+Create `.env.local`:
+
+```env
+COHERE_API_KEY=your_cohere_api_key
+```
+
+Then run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `COHERE_API_KEY` | Yes | Cohere API key used by `/api/chat`. |
+| `MAINTENANCE_MODE` | No | Set to `true` to make `/api/chat` return 503. Redeploy after changing it. |
 
-## Learn More
+## How it works
 
-To learn more about Next.js, take a look at the following resources:
+The server is stateless. The browser keeps the conversation and sends the latest message plus up to 10 previous messages to `POST /api/chat`. The route validates the input, adds a UNITEN-focused system prompt, calls Cohere and returns `{ reply }`. Nothing is stored by this app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Key files:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/page.tsx` – chat UI
+- `app/api/chat/route.ts` – Cohere API route
+- `components/ChatSidebar.tsx`, `components/BrandMark.tsx` – sidebar and logo
+- `app/globals.css` – theme colours and the doodle background
 
-## Deploy on Vercel
+## Deploying to Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Import the repository in Vercel (the Next.js preset is detected automatically).
+2. Add `COHERE_API_KEY` under **Settings → Environment Variables**.
+3. Deploy. The route sets `maxDuration = 30`, which fits the free plan.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm start` | Run the production build |
+| `npm run lint` | Run ESLint |
+
+## Credits
+
+A concept project by [HKL](https://github.com/CodeWithHKL).
