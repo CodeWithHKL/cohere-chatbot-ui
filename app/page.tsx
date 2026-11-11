@@ -103,7 +103,8 @@ export default function CyberChat() {
               <PanelLeftOpen size={18} />
             </button>
           )}
-          <BrandMark size={36} />
+          {/* The open sidebar already shows the logo, so hide this one then (avoids a double logo) */}
+          <BrandMark size={36} className={sidebarOpen ? "md:hidden" : ""} />
           <div className="leading-tight min-w-0">
             <h1 className="text-sm font-semibold tracking-tight truncate">UNITEN Chatbot</h1>
             <p className="text-[11px] text-white/75 truncate">Universiti Tenaga Nasional</p>
