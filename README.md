@@ -44,6 +44,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Description |
 | --- | --- | --- |
 | `COHERE_API_KEY` | Yes | Cohere API key used by `/api/chat`. |
+| `TURNSTILE_SITE_KEY` | Yes | Cloudflare Turnstile site key. `proxy.ts` gates the whole site (pages and `/api/chat`) behind a Turnstile challenge and returns 500 if the keys are missing. |
+| `TURNSTILE_SECRET_KEY` | Yes | Cloudflare Turnstile secret key. Also used to sign the 12-hour `ts_pass` cookie. |
 | `MAINTENANCE_MODE` | No | Set to `true` to make `/api/chat` return 503. Redeploy after changing it. |
 
 ## How it works
